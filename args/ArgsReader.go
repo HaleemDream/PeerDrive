@@ -7,32 +7,34 @@ import (
 
 // NetworkConfig - struct to hold network args
 type NetworkConfig struct {
-	connectionType string
-	port           int
-	host           string
+	ConnectionType string
+	Port           int
+	Host           string
 }
 
 func getDefaultNetworkConfig() NetworkConfig {
 	var networkConfig NetworkConfig
 
-	networkConfig.connectionType = "SERVER"
-	networkConfig.port = 20000
-	networkConfig.host = "localhost"
+	networkConfig.ConnectionType = "SERVER"
+	networkConfig.Port = 20000
+	networkConfig.Host = "localHost"
 
 	return networkConfig
 }
 
-// Read -[SERVER/CLIENT],[PORT], [HOSTNAME]
+// TODO - default peer drive dir, read in user select dir
+
+// Read -[SERVER/CLIENT],[Port], [HostNAME]
 func Read(args []string) NetworkConfig {
 	var defaultNetworkSettings = getDefaultNetworkConfig()
 
 	if len(args) > 0 {
-		defaultNetworkSettings.connectionType = args[0]
+		defaultNetworkSettings.ConnectionType = args[0]
 	}
 
 	if len(args) > 1 {
 		var err error
-		defaultNetworkSettings.port, err = strconv.Atoi(args[1])
+		defaultNetworkSettings.Port, err = strconv.Atoi(args[1])
 
 		if err != nil {
 			log.Print(err)
@@ -40,7 +42,7 @@ func Read(args []string) NetworkConfig {
 	}
 
 	if len(args) > 2 {
-		defaultNetworkSettings.host = args[2]
+		defaultNetworkSettings.Host = args[2]
 	}
 
 	return defaultNetworkSettings
