@@ -4,12 +4,15 @@ package network
 // onClient(client)
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"log"
 	"net"
 
 	args "../args"
+	files "../files"
+	meta "../meta"
 )
 
 // Listen creates TCP server
@@ -63,7 +66,20 @@ func onClient(client net.Conn) {
 }
 
 func sendPieceInformation(client net.Conn, header Header) {
-	fmt.Println("received RequestPieceInformation")
+	file := meta.FileInformation(header.FileIndex)
+	piecesOwned := files.GetPieceInformation(file.Name)
+	pieceLength := len(piecesOwned)
+
+	buffer := new(bytes.Buffer)
+	buffer.WriteByte(byte(SendingPieceInformation)) // request piece information
+	buffer.WriteByte(byte(file.ID))                 // specifiy file id
+	buffer.WriteByte(byte(pieceLength))             // specifiy number of pieces
+
+	for _, index := range piecesOwned {
+		buffer.Write(int32ToByteArr(uint32(index)))
+	}
+
+	client.Write(buffer.Bytes())
 }
 
 func sendRequestedPieces(client net.Conn, header Header) {

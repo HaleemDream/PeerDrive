@@ -8,11 +8,22 @@ import (
 	"net"
 
 	args "../args"
+	meta "../meta"
 )
 
 // Client attempts to connect to tcp server
 func Client(settings args.NetworkConfig) {
-	serverHostPort := fmt.Sprintf("%s:%s", settings.Host, settings.Port)
+
+	// metadata (request from server?)
+	swarmMetadata := meta.Retrieve()
+
+	// onClick (peer clicked on a file to download)
+	peer := swarmMetadata.Peers[0]
+	file := swarmMetadata.Files[0]
+
+	// download event triggerd :
+	// do the following
+	serverHostPort := fmt.Sprintf("%s:%s", peer.Host, peer.Port)
 	con, err := net.Dial("tcp", serverHostPort)
 
 	if err != nil {
@@ -21,22 +32,22 @@ func Client(settings args.NetworkConfig) {
 	}
 
 	fmt.Println("Succesfully connected to Server!")
-	con.Write(sendPieceInformationRequest())
+	con.Write(sendPieceInformationRequest(file))
 	con.Close()
 }
 
-func sendPieceInformationRequest() []byte {
+func sendPieceInformationRequest(file meta.File) []byte {
 	buffer := new(bytes.Buffer)
-	buffer.WriteByte(byte(RequestPieceInformation))
-	buffer.Write(int32ToByteArr(0))
-	buffer.Write(int32ToByteArr(0))
+	buffer.WriteByte(byte(RequestPieceInformation)) // request piece information
+	buffer.Write(int32ToByteArr(file.ID))           // specifiy file
+	buffer.Write(int32ToByteArr(0))                 // zero fill
 
 	return buffer.Bytes()
 }
 
 // temp
-func int32ToByteArr(value int32) []byte {
+func int32ToByteArr(value uint32) []byte {
 	intBuffer := make([]byte, 4)
-	binary.BigEndian.PutUint32intBuffer, uint32(value))
+	binary.BigEndian.PutUint32(intBuffer, value)
 	return intBuffer
 }

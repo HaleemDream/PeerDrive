@@ -5,8 +5,6 @@ package file
 import (
 	"log"
 	"math"
-
-	network "../network"
 )
 
 const (
@@ -74,5 +72,5 @@ func GetPieceInformation(filename string) []int {
 
 // getPieceLength - number pieces
 func getPieceLength(filename string) int {
-	return int(math.Ceil(float64(fileSize(filename)) / float64(network.ChunkSize)))
+	return int(math.Ceil(float64(fileSize(filename)) / float64(chunkSize)))
 }

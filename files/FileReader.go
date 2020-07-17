@@ -4,9 +4,9 @@ import (
 	"bufio"
 	"log"
 	"os"
-
-	network "../network"
 )
+
+const chunkSize = 128
 
 // ByteChunks - Reads a file and returns 2d array of bytes
 // size of last array will be <= chunkSize
@@ -14,15 +14,15 @@ func ByteChunks(filename string) [][]byte {
 
 	// file size in bytes
 	var fileSize = fileSize(filename)
-	var pieceCount = int(fileSize / int64(network.ChunkSize))
-	var lastByteArraySize = fileSize % int64(network.ChunkSize)
+	var pieceCount = int(fileSize / int64(chunkSize))
+	var lastByteArraySize = fileSize % int64(chunkSize)
 
 	if lastByteArraySize != 0 {
 		pieceCount++
 	}
 
 	var fileBytes = make([][]byte, pieceCount)
-	var chunkSize uint32 = network.ChunkSize
+	var chunkSize uint32 = chunkSize
 
 	for i := range fileBytes {
 		// resize last array to be size of remaining bytes
@@ -58,7 +58,7 @@ func GetPiece(filename string, pieceIndex uint32) []byte {
 	// TODO - len of last piece is == ChunkSize but should be <=
 	// TODO - err handle pieceIndex > len(pieces)
 
-	bytes := make([]byte, network.ChunkSize)
+	bytes := make([]byte, chunkSize)
 	f, err := os.Open(filename)
 
 	defer f.Close()
@@ -67,7 +67,7 @@ func GetPiece(filename string, pieceIndex uint32) []byte {
 		log.Print(err)
 	}
 
-	var offset int64 = int64(pieceIndex * network.ChunkSize)
+	var offset int64 = int64(pieceIndex * chunkSize)
 
 	f.ReadAt(bytes, offset)
 
