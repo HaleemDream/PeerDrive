@@ -28,6 +28,22 @@ func InitializePieceInformation() {
 	}
 }
 
+// InitializeFilePieceInformation checks if file is present
+func InitializeFilePieceInformation(filename string) {
+	// init array
+	var piecesLength = getPieceLength(filename)
+
+	if piecesByFilename[filename] == nil {
+		piecesByFilename[filename] = make([]int, piecesLength)
+	}
+
+	if fileExists(filename) {
+		for i := 0; i < piecesLength; i++ {
+			piecesByFilename[filename][i] = hasPiece
+		}
+	}
+}
+
 // ReceivedPiece updates internal container with pieces client has
 func ReceivedPiece(filename string, pieceIndex int) {
 	if piecesByFilename[filename] == nil {
@@ -51,20 +67,8 @@ func HasPiece(filename string, pieceIndex int) bool {
 	return piecesByFilename[filename][pieceIndex] == hasPiece
 }
 
-func getPieceInformation(filename string) []int {
-	// init array
-	var piecesLength = getPieceLength(filename)
-
-	if piecesByFilename[filename] == nil {
-		piecesByFilename[filename] = make([]int, piecesLength)
-	}
-
-	if fileExists(filename) {
-		for i := 0; i < piecesLength; i++ {
-			piecesByFilename[filename][i] = hasPiece
-		}
-	}
-
+// GetPieceInformation returns pieces owned by client for file
+func GetPieceInformation(filename string) []int {
 	return piecesByFilename[filename]
 }
 

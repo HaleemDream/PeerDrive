@@ -5,6 +5,7 @@ package network
 
 import (
 	"encoding/binary"
+	"fmt"
 	"log"
 	"net"
 
@@ -14,8 +15,9 @@ import (
 // Listen creates TCP server
 // handles incoming messages
 func Listen(settings args.NetworkConfig) {
-	port := ":" + string(settings.Port)
-	server, err := net.Listen("tcp4", port)
+	fmt.Printf("Server Listening on %s\n", settings.Port)
+	port := ":" + settings.Port
+	server, err := net.Listen("tcp", port)
 
 	if err != nil {
 		log.Print(err)
@@ -54,9 +56,16 @@ func onClient(client net.Conn) {
 
 	switch header.MessageType {
 	case RequestPieceInformation:
-		// sendPieceInformation(client, header)
+		sendPieceInformation(client, header)
 	case RequestPieces:
-		// sendRequestedPieces(client, header)
+		sendRequestedPieces(client, header)
 	}
+}
 
+func sendPieceInformation(client net.Conn, header Header) {
+	fmt.Println("received RequestPieceInformation")
+}
+
+func sendRequestedPieces(client net.Conn, header Header) {
+	fmt.Println("received RequestPieces")
 }
