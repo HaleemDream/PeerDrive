@@ -32,7 +32,37 @@ func Client(settings args.NetworkConfig) {
 	}
 
 	fmt.Println("Succesfully connected to Server!")
+	fmt.Println("Sending msg..")
 	con.Write(sendPieceInformationRequest(file))
+
+	// receive piece information
+	// refactor out
+	var header Header
+
+	if err := binary.Read(con, binary.BigEndian, &header.MessageType); err != nil {
+		log.Print(err)
+	}
+
+	if err := binary.Read(con, binary.BigEndian, &header.FileIndex); err != nil {
+		log.Print(err)
+	}
+
+	if err := binary.Read(con, binary.BigEndian, &header.PieceCount); err != nil {
+		log.Print(err)
+	}
+
+	indexPayload := make([]uint32, header.PieceCount)
+
+	for i := 0; i < int(header.PieceCount); i++ {
+		if err := binary.Read(con, binary.BigEndian, &indexPayload[i]); err != nil {
+			log.Print(err)
+		}
+	}
+
+	fmt.Printf("File index = %d, pieceCount = %d\n", header.FileIndex, header.PieceCount)
+	fmt.Println("Payload...")
+	fmt.Println(indexPayload)
+	fmt.Println("Done receiving msg!")
 	con.Close()
 }
 

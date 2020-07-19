@@ -22,6 +22,8 @@ func Listen(settings args.NetworkConfig) {
 	port := ":" + settings.Port
 	server, err := net.Listen("tcp", port)
 
+	files.InitializePieceInformation()
+
 	if err != nil {
 		log.Print(err)
 		return
@@ -66,20 +68,35 @@ func onClient(client net.Conn) {
 }
 
 func sendPieceInformation(client net.Conn, header Header) {
+	fmt.Println("Receieved Request Piece Information...")
 	file := meta.FileInformation(header.FileIndex)
+
+	// TODO
+	// init file data
+	// should be done elsewhere
+	fmt.Println("Init file piece information...")
+	files.InitializeFilePieceInformation(file.Name)
+
 	piecesOwned := files.GetPieceInformation(file.Name)
-	pieceLength := len(piecesOwned)
+
+	var pieceCount uint32
+	piecesIndexPayload := new(bytes.Buffer)
+	for pieceIndex, piece := range piecesOwned {
+		if piece == files.HavePiece {
+			pieceCount++
+			piecesIndexPayload.Write(int32ToByteArr(uint32(pieceIndex)))
+		}
+	}
 
 	buffer := new(bytes.Buffer)
 	buffer.WriteByte(byte(SendingPieceInformation)) // request piece information
-	buffer.WriteByte(byte(file.ID))                 // specifiy file id
-	buffer.WriteByte(byte(pieceLength))             // specifiy number of pieces
+	buffer.Write(int32ToByteArr(file.ID))           // specifiy file id
+	buffer.Write(int32ToByteArr(pieceCount))        // specifiy number of pieces
+	buffer.Write(piecesIndexPayload.Bytes())
 
-	for _, index := range piecesOwned {
-		buffer.Write(int32ToByteArr(uint32(index)))
-	}
-
+	fmt.Println("Sending bytes...")
 	client.Write(buffer.Bytes())
+	fmt.Println("Bytes receieved by client!")
 }
 
 func sendRequestedPieces(client net.Conn, header Header) {

@@ -7,9 +7,11 @@ import (
 	"math"
 )
 
+// HavePiece
+// DoesNotHavePiece
 const (
-	hasPiece         = 1
-	doesNotHavePiece = 0
+	HavePiece        = 1
+	DoesNotHavePiece = 0
 )
 
 const pieceFile = "placeholder"
@@ -37,7 +39,7 @@ func InitializeFilePieceInformation(filename string) {
 
 	if fileExists(filename) {
 		for i := 0; i < piecesLength; i++ {
-			piecesByFilename[filename][i] = hasPiece
+			piecesByFilename[filename][i] = HavePiece
 		}
 	}
 }
@@ -48,7 +50,7 @@ func ReceivedPiece(filename string, pieceIndex int) {
 		piecesByFilename[filename] = make([]int, getPieceLength(filename))
 	}
 
-	piecesByFilename[filename][pieceIndex] = hasPiece
+	piecesByFilename[filename][pieceIndex] = HavePiece
 }
 
 // HasPiece return if client has data for pieceIndex
@@ -62,7 +64,7 @@ func HasPiece(filename string, pieceIndex int) bool {
 		return false
 	}
 
-	return piecesByFilename[filename][pieceIndex] == hasPiece
+	return piecesByFilename[filename][pieceIndex] == HavePiece
 }
 
 // GetPieceInformation returns pieces owned by client for file
