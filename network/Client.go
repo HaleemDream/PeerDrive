@@ -34,9 +34,17 @@ func Client(settings args.NetworkConfig) {
 	fmt.Println("Succesfully connected to Server!")
 	fmt.Println("Sending msg..")
 	con.Write(sendPieceInformationRequest(file))
+	header, payload := recvPieceInformationRequest(con)
 
-	// receive piece information
-	// refactor out
+	fmt.Printf("File index = %d, pieceCount = %d\n", header.FileIndex, header.PieceCount)
+	fmt.Println("Payload...")
+	fmt.Println(payload)
+	fmt.Println("Done receiving msg!")
+
+	con.Close()
+}
+
+func recvPieceInformationRequest(con net.Conn) (Header, []uint32) {
 	var header Header
 
 	if err := binary.Read(con, binary.BigEndian, &header.MessageType); err != nil {
@@ -59,11 +67,7 @@ func Client(settings args.NetworkConfig) {
 		}
 	}
 
-	fmt.Printf("File index = %d, pieceCount = %d\n", header.FileIndex, header.PieceCount)
-	fmt.Println("Payload...")
-	fmt.Println(indexPayload)
-	fmt.Println("Done receiving msg!")
-	con.Close()
+	return header, indexPayload
 }
 
 func sendPieceInformationRequest(file meta.File) []byte {
