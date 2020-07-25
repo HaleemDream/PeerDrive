@@ -67,6 +67,21 @@ func HasPiece(filename string, pieceIndex int) bool {
 	return piecesByFilename[filename][pieceIndex] == HavePiece
 }
 
+// MissingPieces returns true if not all pieces present
+func MissingPieces(filename string) bool {
+	if piecesByFilename[filename] == nil {
+		return true
+	}
+
+	for _, value := range piecesByFilename[filename] {
+		if value != HavePiece {
+			return true
+		}
+	}
+
+	return false
+}
+
 // GetPieceInformation returns pieces owned by client for file
 func GetPieceInformation(filename string) []int {
 	return piecesByFilename[filename]

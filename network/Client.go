@@ -18,6 +18,7 @@ func Client(settings args.NetworkConfig) {
 	swarmMetadata := meta.Retrieve()
 
 	// onClick (peer clicked on a file to download)
+	// (create file)
 	peer := swarmMetadata.Peers[0]
 	file := swarmMetadata.Files[0]
 
@@ -34,12 +35,16 @@ func Client(settings args.NetworkConfig) {
 	fmt.Println("Succesfully connected to Server!")
 	fmt.Println("Sending msg..")
 	con.Write(sendPieceInformationRequest(file))
-	header, payload := recvPieceInformationRequest(con)
+	header, peerPieces := recvPieceInformationRequest(con)
 
 	fmt.Printf("File index = %d, pieceCount = %d\n", header.FileIndex, header.PieceCount)
-	fmt.Println("Payload...")
-	fmt.Println(payload)
 	fmt.Println("Done receiving msg!")
+
+	//if files.MissingPieces(file.Name) {
+	con.Write(sendPieceRequest(file, peerPieces))
+	//} else {
+	//	fmt.Println("not missing any")
+	//}
 
 	con.Close()
 }
@@ -73,14 +78,37 @@ func recvPieceInformationRequest(con net.Conn) (Header, []uint32) {
 func sendPieceInformationRequest(file meta.File) []byte {
 	buffer := new(bytes.Buffer)
 	buffer.WriteByte(byte(RequestPieceInformation)) // request piece information
-	buffer.Write(int32ToByteArr(file.ID))           // specifiy file
-	buffer.Write(int32ToByteArr(0))                 // zero fill
+	buffer.Write(uint32ToByteArr(file.ID))          // specifiy file
+	buffer.Write(uint32ToByteArr(0))                // zero fill
+
+	return buffer.Bytes()
+}
+
+func sendPieceRequest(file meta.File, payload []uint32) []byte {
+	var pieceCount uint32
+	pieceRequestPayload := new(bytes.Buffer)
+
+	for _, value := range payload {
+		//if !files.HasPiece(file.Name, int(value)) {
+		pieceCount++
+		pieceRequestPayload.Write(uint32ToByteArr(value))
+		//}
+	}
+
+	fmt.Printf("payload size = %d\n", pieceCount)
+	fmt.Println(pieceRequestPayload)
+
+	buffer := new(bytes.Buffer)
+	buffer.WriteByte(byte(RequestPieces))
+	buffer.Write(uint32ToByteArr(file.ID))
+	buffer.Write(uint32ToByteArr(pieceCount))
+	buffer.Write(pieceRequestPayload.Bytes())
 
 	return buffer.Bytes()
 }
 
 // temp
-func int32ToByteArr(value uint32) []byte {
+func uint32ToByteArr(value uint32) []byte {
 	intBuffer := make([]byte, 4)
 	binary.BigEndian.PutUint32(intBuffer, value)
 	return intBuffer

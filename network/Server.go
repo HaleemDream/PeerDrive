@@ -22,8 +22,6 @@ func Listen(settings args.NetworkConfig) {
 	port := ":" + settings.Port
 	server, err := net.Listen("tcp", port)
 
-	files.InitializePieceInformation()
-
 	if err != nil {
 		log.Print(err)
 		return
@@ -45,37 +43,37 @@ func Listen(settings args.NetworkConfig) {
 }
 
 func onClient(client net.Conn) {
-	var header Header
+	// TODO handle client reads better
+	for {
+		var header Header
 
-	if err := binary.Read(client, binary.BigEndian, &header.MessageType); err != nil {
-		log.Print(err)
-	}
+		if err := binary.Read(client, binary.BigEndian, &header.MessageType); err != nil {
+			log.Print(err)
+			return
+		}
 
-	if err := binary.Read(client, binary.BigEndian, &header.PieceCount); err != nil {
-		log.Print(err)
-	}
+		if err := binary.Read(client, binary.BigEndian, &header.FileIndex); err != nil {
+			log.Print(err)
+			return
+		}
 
-	if err := binary.Read(client, binary.BigEndian, &header.FileIndex); err != nil {
-		log.Print(err)
-	}
+		if err := binary.Read(client, binary.BigEndian, &header.PieceCount); err != nil {
+			log.Print(err)
+			return
+		}
 
-	switch header.MessageType {
-	case RequestPieceInformation:
-		sendPieceInformation(client, header)
-	case RequestPieces:
-		sendRequestedPieces(client, header)
+		switch header.MessageType {
+		case RequestPieceInformation:
+			sendPieceInformation(client, header)
+		case RequestPieces:
+			sendRequestedPieces(client, header)
+		}
 	}
 }
 
 func sendPieceInformation(client net.Conn, header Header) {
 	fmt.Println("Receieved Request Piece Information...")
 	file := meta.FileInformation(header.FileIndex)
-
-	// TODO
-	// init file data
-	// should be done elsewhere
-	fmt.Println("Init file piece information...")
-	files.InitializeFilePieceInformation(file.Name)
 
 	piecesOwned := files.GetPieceInformation(file.Name)
 
@@ -84,14 +82,14 @@ func sendPieceInformation(client net.Conn, header Header) {
 	for pieceIndex, piece := range piecesOwned {
 		if piece == files.HavePiece {
 			pieceCount++
-			piecesIndexPayload.Write(int32ToByteArr(uint32(pieceIndex)))
+			piecesIndexPayload.Write(uint32ToByteArr(uint32(pieceIndex)))
 		}
 	}
 
 	buffer := new(bytes.Buffer)
 	buffer.WriteByte(byte(SendingPieceInformation)) // request piece information
-	buffer.Write(int32ToByteArr(file.ID))           // specifiy file id
-	buffer.Write(int32ToByteArr(pieceCount))        // specifiy number of pieces
+	buffer.Write(uint32ToByteArr(file.ID))          // specifiy file id
+	buffer.Write(uint32ToByteArr(pieceCount))       // specifiy number of pieces
 	buffer.Write(piecesIndexPayload.Bytes())
 
 	fmt.Println("Sending bytes...")
@@ -101,4 +99,15 @@ func sendPieceInformation(client net.Conn, header Header) {
 
 func sendRequestedPieces(client net.Conn, header Header) {
 	fmt.Println("received RequestPieces")
+
+	requestPieces := make([]uint32, header.PieceCount)
+
+	for i := 0; i < int(header.PieceCount); i++ {
+		if err := binary.Read(client, binary.BigEndian, &requestPieces[i]); err != nil {
+			log.Print(err)
+		}
+	}
+
+	fmt.Println("Requested pieces...")
+	fmt.Println(requestPieces)
 }
