@@ -43,6 +43,8 @@ func Listen(settings args.NetworkConfig) {
 }
 
 func onClient(client net.Conn) {
+	defer client.Close()
+
 	// TODO handle client reads better
 	for {
 		var header Header
@@ -100,14 +102,25 @@ func sendPieceInformation(client net.Conn, header Header) {
 func sendRequestedPieces(client net.Conn, header Header) {
 	fmt.Println("received RequestPieces")
 
+	file := meta.FileInformation(header.FileIndex)
+
 	requestPieces := make([]uint32, header.PieceCount)
+	payload := new(bytes.Buffer)
 
 	for i := 0; i < int(header.PieceCount); i++ {
 		if err := binary.Read(client, binary.BigEndian, &requestPieces[i]); err != nil {
 			log.Print(err)
 		}
+
+		payload.Write(files.GetPiece(file.Name, requestPieces[i]))
 	}
 
-	fmt.Println("Requested pieces...")
-	fmt.Println(requestPieces)
+	buffer := new(bytes.Buffer)
+	buffer.WriteByte(byte(SendingPieces))
+	buffer.Write(uint32ToByteArr(header.FileIndex))
+	buffer.Write(uint32ToByteArr(header.PieceCount))
+	binary.Write(buffer, binary.BigEndian, requestPieces)
+	buffer.Write(payload.Bytes())
+
+	client.Write(buffer.Bytes())
 }

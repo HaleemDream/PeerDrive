@@ -32,6 +32,7 @@ func Client(settings args.NetworkConfig) {
 		return
 	}
 
+	// TODO - structure of communication need to be changed
 	fmt.Println("Succesfully connected to Server!")
 	fmt.Println("Sending msg..")
 	con.Write(sendPieceInformationRequest(file))
@@ -46,33 +47,62 @@ func Client(settings args.NetworkConfig) {
 	//	fmt.Println("not missing any")
 	//}
 
+	recvPieces(con)
+
 	con.Close()
 }
 
-func recvPieceInformationRequest(con net.Conn) (Header, []uint32) {
+func readHeader(server net.Conn) Header {
 	var header Header
 
-	if err := binary.Read(con, binary.BigEndian, &header.MessageType); err != nil {
+	if err := binary.Read(server, binary.BigEndian, &header.MessageType); err != nil {
 		log.Print(err)
 	}
 
-	if err := binary.Read(con, binary.BigEndian, &header.FileIndex); err != nil {
+	if err := binary.Read(server, binary.BigEndian, &header.FileIndex); err != nil {
 		log.Print(err)
 	}
 
-	if err := binary.Read(con, binary.BigEndian, &header.PieceCount); err != nil {
+	if err := binary.Read(server, binary.BigEndian, &header.PieceCount); err != nil {
 		log.Print(err)
 	}
 
-	indexPayload := make([]uint32, header.PieceCount)
+	return header
+}
 
-	for i := 0; i < int(header.PieceCount); i++ {
-		if err := binary.Read(con, binary.BigEndian, &indexPayload[i]); err != nil {
+func readIndexPayload(server net.Conn, pieceLength uint32) []uint32 {
+	indexPayload := make([]uint32, pieceLength)
+
+	for i := 0; i < int(pieceLength); i++ {
+		if err := binary.Read(server, binary.BigEndian, &indexPayload[i]); err != nil {
 			log.Print(err)
 		}
 	}
 
+	return indexPayload
+}
+
+func readPiecePayload(server net.Conn, pieceLength uint32) []byte {
+	buffer := make([]byte, pieceLength*ChunkSize)
+
+	server.Read(buffer)
+	return buffer
+}
+
+func recvPieceInformationRequest(con net.Conn) (Header, []uint32) {
+	header := readHeader(con)
+	indexPayload := readIndexPayload(con, header.PieceCount)
+
 	return header, indexPayload
+}
+
+func recvPieces(con net.Conn) {
+	fmt.Println("receiving piece payload")
+	header := readHeader(con)
+	readIndexPayload(con, header.PieceCount)
+	piecePayload := readPiecePayload(con, header.PieceCount)
+
+	fmt.Println(string(piecePayload))
 }
 
 func sendPieceInformationRequest(file meta.File) []byte {
