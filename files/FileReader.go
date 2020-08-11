@@ -76,7 +76,7 @@ func GetPiece(filename string, pieceIndex uint32) []byte {
 
 // GetPieces - returns bytes of pieces
 func GetPieces(filename string, pieceIndexes []uint32) [][]byte {
-	bytes := make([][]byte, len(pieceIndexes)*chunkSize)
+	bytes := make([][]byte, len(pieceIndexes))
 
 	for i, pieceIndex := range pieceIndexes {
 		bytes[i] = GetPiece(filename, pieceIndex)
