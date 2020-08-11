@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	args "../args"
 	meta "../meta"
@@ -32,6 +33,12 @@ func Client(settings args.NetworkConfig) {
 		return
 	}
 
+	f, err := os.OpenFile(file.Name, os.O_CREATE|os.O_RDWR, 0644)
+
+	if err != nil {
+		log.Print(err)
+	}
+
 	// TODO - structure of communication need to be changed
 	fmt.Println("Succesfully connected to Server!")
 	fmt.Println("Sending msg..")
@@ -47,7 +54,7 @@ func Client(settings args.NetworkConfig) {
 	//	fmt.Println("not missing any")
 	//}
 
-	recvPieces(con)
+	recvPieces(con, f)
 
 	con.Close()
 }
@@ -96,13 +103,19 @@ func recvPieceInformationRequest(con net.Conn) (Header, []uint32) {
 	return header, indexPayload
 }
 
-func recvPieces(con net.Conn) {
+func recvPieces(con net.Conn, f *os.File) {
 	fmt.Println("receiving piece payload")
 	header := readHeader(con)
-	readIndexPayload(con, header.PieceCount)
+	indexPayload := readIndexPayload(con, header.PieceCount)
 	piecePayload := readPiecePayload(con, header.PieceCount)
 
-	fmt.Println(string(piecePayload))
+	for index, i := range indexPayload {
+		_, err := f.WriteAt(piecePayload[i*ChunkSize:i*ChunkSize+ChunkSize], int64(index*ChunkSize))
+
+		if err != nil {
+			log.Print(err)
+		}
+	}
 }
 
 func sendPieceInformationRequest(file meta.File) []byte {

@@ -47,22 +47,7 @@ func onClient(client net.Conn) {
 
 	// TODO handle client reads better
 	for {
-		var header Header
-
-		if err := binary.Read(client, binary.BigEndian, &header.MessageType); err != nil {
-			log.Print(err)
-			return
-		}
-
-		if err := binary.Read(client, binary.BigEndian, &header.FileIndex); err != nil {
-			log.Print(err)
-			return
-		}
-
-		if err := binary.Read(client, binary.BigEndian, &header.PieceCount); err != nil {
-			log.Print(err)
-			return
-		}
+		header := readHeader(client)
 
 		switch header.MessageType {
 		case RequestPieceInformation:
