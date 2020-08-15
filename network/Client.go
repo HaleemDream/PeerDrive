@@ -9,6 +9,7 @@ import (
 	"os"
 
 	args "../args"
+	files "../files"
 	meta "../meta"
 )
 
@@ -28,33 +29,39 @@ func Client(settings args.NetworkConfig) {
 	serverHostPort := fmt.Sprintf("%s:%s", peer.Host, peer.Port)
 	con, err := net.Dial("tcp", serverHostPort)
 
+	fmt.Println("Succesfully connected to Server!")
+
 	if err != nil {
 		log.Print(err)
 		return
 	}
 
+	// init internal map
+	if !files.Exists(file.Name) {
+		files.InitializeFilePieceInformationExt(file.Name, file.Size)
+	}
+
+	// create file if not present
 	f, err := os.OpenFile(file.Name, os.O_CREATE|os.O_RDWR, 0644)
 
 	if err != nil {
 		log.Print(err)
 	}
 
-	// TODO - structure of communication need to be changed
-	fmt.Println("Succesfully connected to Server!")
-	fmt.Println("Sending msg..")
-	con.Write(sendPieceInformationRequest(file))
-	header, peerPieces := recvPieceInformationRequest(con)
+	// request pieces we don't have
+	for files.MissingPieces(file.Name) {
+		// find out what pieces peer has
+		// TODO - request periodically instead of constantly
+		con.Write(sendPieceInformationRequest(file))
+		_, peerPieces := recvPieceInformationRequest(con)
 
-	fmt.Printf("File index = %d, pieceCount = %d\n", header.FileIndex, header.PieceCount)
-	fmt.Println("Done receiving msg!")
+		// retrieve payload
+		con.Write(sendPieceRequest(file, peerPieces))
+		handleReceievedPieces(con, f)
+	}
 
-	//if files.MissingPieces(file.Name) {
-	con.Write(sendPieceRequest(file, peerPieces))
-	//} else {
-	//	fmt.Println("not missing any")
-	//}
-
-	recvPieces(con, f)
+	// terminate connection
+	con.Write(sendTerminationRequest())
 
 	con.Close()
 }
@@ -103,13 +110,18 @@ func recvPieceInformationRequest(con net.Conn) (Header, []uint32) {
 	return header, indexPayload
 }
 
-func recvPieces(con net.Conn, f *os.File) {
+func handleReceievedPieces(con net.Conn, f *os.File) {
 	fmt.Println("receiving piece payload")
 	header := readHeader(con)
 	indexPayload := readIndexPayload(con, header.PieceCount)
 	piecePayload := readPiecePayload(con, header.PieceCount)
 
 	for index, i := range indexPayload {
+		// maintain information on what pieces client now maintains
+		files.ReceivedPiece(f.Name(), i)
+
+		// write pieces
+		// TODO - write chunk size pieces?
 		_, err := f.WriteAt(piecePayload[i*ChunkSize:i*ChunkSize+ChunkSize], int64(index*ChunkSize))
 
 		if err != nil {
@@ -132,10 +144,10 @@ func sendPieceRequest(file meta.File, payload []uint32) []byte {
 	pieceRequestPayload := new(bytes.Buffer)
 
 	for _, value := range payload {
-		//if !files.HasPiece(file.Name, int(value)) {
-		pieceCount++
-		pieceRequestPayload.Write(uint32ToByteArr(value))
-		//}
+		if !files.HasPiece(file.Name, int(value)) {
+			pieceCount++
+			pieceRequestPayload.Write(uint32ToByteArr(value))
+		}
 	}
 
 	fmt.Printf("payload size = %d\n", pieceCount)
@@ -146,6 +158,17 @@ func sendPieceRequest(file meta.File, payload []uint32) []byte {
 	buffer.Write(uint32ToByteArr(file.ID))
 	buffer.Write(uint32ToByteArr(pieceCount))
 	buffer.Write(pieceRequestPayload.Bytes())
+
+	return buffer.Bytes()
+}
+
+func sendTerminationRequest() []byte {
+	fmt.Printf("Sending termination request\n")
+
+	buffer := new(bytes.Buffer)
+	buffer.WriteByte(byte(TerminateConnection)) // request piece information
+	buffer.Write(uint32ToByteArr(0))            // zero fill
+	buffer.Write(uint32ToByteArr(0))            // zero fill
 
 	return buffer.Bytes()
 }

@@ -85,7 +85,8 @@ func GetPieces(filename string, pieceIndexes []uint32) [][]byte {
 	return bytes
 }
 
-func fileExists(filename string) bool {
+// Exists returns if file existss
+func Exists(filename string) bool {
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		return false
 	}
@@ -95,7 +96,7 @@ func fileExists(filename string) bool {
 
 func fileSize(filename string) int64 {
 
-	if !fileExists(filename) {
+	if !Exists(filename) {
 		return 0
 	}
 

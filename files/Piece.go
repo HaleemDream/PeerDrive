@@ -20,7 +20,7 @@ var piecesByFilename map[string][]int
 
 // InitializePieceInformation reads in file if present and init internal map
 func InitializePieceInformation() {
-	if fileExists(pieceFile) {
+	if Exists(pieceFile) {
 		// read in serialized list
 		// save it to map
 	} else {
@@ -37,7 +37,23 @@ func InitializeFilePieceInformation(filename string) {
 		piecesByFilename[filename] = make([]int, piecesLength)
 	}
 
-	if fileExists(filename) {
+	if Exists(filename) {
+		for i := 0; i < piecesLength; i++ {
+			piecesByFilename[filename][i] = HavePiece
+		}
+	}
+}
+
+// InitializeFilePieceInformationExt - Test
+func InitializeFilePieceInformationExt(filename string, size uint64) {
+	// init array
+	var piecesLength = int(math.Ceil(float64(size) / float64(chunkSize)))
+
+	//if piecesByFilename[filename] == nil {
+	piecesByFilename[filename] = make([]int, piecesLength)
+	//}
+
+	if Exists(filename) {
 		for i := 0; i < piecesLength; i++ {
 			piecesByFilename[filename][i] = HavePiece
 		}
@@ -45,7 +61,7 @@ func InitializeFilePieceInformation(filename string) {
 }
 
 // ReceivedPiece updates internal container with pieces client has
-func ReceivedPiece(filename string, pieceIndex int) {
+func ReceivedPiece(filename string, pieceIndex uint32) {
 	if piecesByFilename[filename] == nil {
 		piecesByFilename[filename] = make([]int, getPieceLength(filename))
 	}

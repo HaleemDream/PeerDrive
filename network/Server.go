@@ -43,6 +43,8 @@ func Listen(settings args.NetworkConfig) {
 }
 
 func onClient(client net.Conn) {
+	fmt.Println("Connected to client...")
+
 	defer client.Close()
 
 	// TODO handle client reads better
@@ -54,6 +56,8 @@ func onClient(client net.Conn) {
 			sendPieceInformation(client, header)
 		case RequestPieces:
 			sendRequestedPieces(client, header)
+		case TerminateConnection:
+			return
 		}
 	}
 }
@@ -79,9 +83,7 @@ func sendPieceInformation(client net.Conn, header Header) {
 	buffer.Write(uint32ToByteArr(pieceCount))       // specifiy number of pieces
 	buffer.Write(piecesIndexPayload.Bytes())
 
-	fmt.Println("Sending bytes...")
 	client.Write(buffer.Bytes())
-	fmt.Println("Bytes receieved by client!")
 }
 
 func sendRequestedPieces(client net.Conn, header Header) {

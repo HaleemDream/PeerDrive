@@ -23,7 +23,7 @@ type Peer struct {
 func Retrieve( /*swarm hash*/ ) Tracker {
 	var file File
 	file.Name = "test.txt"
-	file.Size = 1024
+	file.Size = 1025
 	file.ID = 0
 
 	var peer Peer

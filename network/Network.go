@@ -15,6 +15,7 @@ const (
 	SendingPieceInformation MessageType = 1
 	RequestPieces           MessageType = 2
 	SendingPieces           MessageType = 3
+	TerminateConnection     MessageType = 255
 )
 
 // Header represents header data in buffer
