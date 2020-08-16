@@ -57,6 +57,7 @@ func onClient(client net.Conn) {
 		case RequestPieces:
 			sendRequestedPieces(client, header)
 		case TerminateConnection:
+			fmt.Println("Client requested termination... closing connection")
 			return
 		}
 	}
@@ -64,8 +65,12 @@ func onClient(client net.Conn) {
 
 func sendPieceInformation(client net.Conn, header Header) {
 	fmt.Println("Receieved Request Piece Information...")
+	// get file info using file index
 	file := meta.FileInformation(header.FileIndex)
 
+	// init file piece information
+	files.InitializeFilePieceInformation(file.Name)
+	// get pieces owned
 	piecesOwned := files.GetPieceInformation(file.Name)
 
 	var pieceCount uint32

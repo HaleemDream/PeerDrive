@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strings"
 
 	args "../args"
 	files "../files"
@@ -24,6 +25,15 @@ func Client(settings args.NetworkConfig) {
 	peer := swarmMetadata.Peers[0]
 	file := swarmMetadata.Files[0]
 
+	// no need to connect to peers if file is present
+	if files.Exists(file.Name) {
+		fmt.Println("file already present...")
+		return
+	}
+
+	// TODO need logic to figure out how many peers to connect to
+	// (default to all?)
+
 	// download event triggerd :
 	// do the following
 	serverHostPort := fmt.Sprintf("%s:%s", peer.Host, peer.Port)
@@ -36,13 +46,14 @@ func Client(settings args.NetworkConfig) {
 		return
 	}
 
+	// TODO clean file name
 	// init internal map
-	if !files.Exists(file.Name) {
+	if !files.Exists(file.Name + ".temp") {
 		files.InitializeFilePieceInformationExt(file.Name, file.Size)
 	}
 
 	// create file if not present
-	f, err := os.OpenFile(file.Name, os.O_CREATE|os.O_RDWR, 0644)
+	f, err := os.OpenFile(file.Name+".temp", os.O_CREATE|os.O_RDWR, 0644)
 
 	if err != nil {
 		log.Print(err)
@@ -62,6 +73,10 @@ func Client(settings args.NetworkConfig) {
 
 	// terminate connection
 	con.Write(sendTerminationRequest())
+
+	// file transfer complete
+	// remove postfix
+	os.Rename(f.Name(), strings.TrimSuffix(f.Name(), ".temp"))
 
 	con.Close()
 }
@@ -118,7 +133,8 @@ func handleReceievedPieces(con net.Conn, f *os.File) {
 
 	for index, i := range indexPayload {
 		// maintain information on what pieces client now maintains
-		files.ReceivedPiece(f.Name(), i)
+		// TODO clean file name
+		files.ReceivedPiece(strings.TrimSuffix(f.Name(), ".temp"), i)
 
 		// write pieces
 		// TODO - write chunk size pieces?

@@ -30,17 +30,21 @@ func InitializePieceInformation() {
 
 // InitializeFilePieceInformation checks if file is present
 func InitializeFilePieceInformation(filename string) {
-	// init array
-	var piecesLength = getPieceLength(filename)
-
 	if piecesByFilename[filename] == nil {
-		piecesByFilename[filename] = make([]int, piecesLength)
-	}
+		// init array
+		var piecesLength = getPieceLength(filename)
 
-	if Exists(filename) {
-		for i := 0; i < piecesLength; i++ {
-			piecesByFilename[filename][i] = HavePiece
+		piecesByFilename[filename] = make([]int, piecesLength)
+
+		// if file is present, then all pieces are present
+		if Exists(filename) {
+			for i := 0; i < piecesLength; i++ {
+				piecesByFilename[filename][i] = HavePiece
+			}
 		}
+		// else, the file is not present
+		// possible that a in-progress file is present
+		// attempt to read and capture what pieces we have
 	}
 }
 
