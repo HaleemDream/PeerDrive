@@ -1,9 +1,11 @@
 package network
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -113,8 +115,13 @@ func readIndexPayload(server net.Conn, pieceLength uint32) []uint32 {
 
 func readPiecePayload(server net.Conn, pieceLength uint32) []byte {
 	buffer := make([]byte, pieceLength*ChunkSize)
+	c := bufio.NewReader(server)
 
-	server.Read(buffer)
+	_, err := io.ReadFull(c, buffer)
+
+	if err != nil {
+		log.Print(err)
+	}
 	return buffer
 }
 
@@ -126,19 +133,25 @@ func recvPieceInformationRequest(con net.Conn) (Header, []uint32) {
 }
 
 func handleReceievedPieces(con net.Conn, f *os.File) {
-	fmt.Println("receiving piece payload")
 	header := readHeader(con)
 	indexPayload := readIndexPayload(con, header.PieceCount)
 	piecePayload := readPiecePayload(con, header.PieceCount)
 
-	for index, i := range indexPayload {
+	for i, v := range indexPayload {
 		// maintain information on what pieces client now maintains
 		// TODO clean file name
-		files.ReceivedPiece(strings.TrimSuffix(f.Name(), ".temp"), i)
+		files.ReceivedPiece(strings.TrimSuffix(f.Name(), ".temp"), v)
+
+		startIndex := i * ChunkSize
+		endIndex := i*ChunkSize + ChunkSize
+
+		if len(piecePayload) < i*ChunkSize+ChunkSize {
+			endIndex = len(piecePayload)
+		}
 
 		// write pieces
 		// TODO - write chunk size pieces?
-		_, err := f.WriteAt(piecePayload[i*ChunkSize:i*ChunkSize+ChunkSize], int64(index*ChunkSize))
+		_, err := f.WriteAt(piecePayload[startIndex:endIndex], int64(v*ChunkSize))
 
 		if err != nil {
 			log.Print(err)
@@ -156,18 +169,17 @@ func sendPieceInformationRequest(file meta.File) []byte {
 }
 
 func sendPieceRequest(file meta.File, payload []uint32) []byte {
-	var pieceCount uint32
+	var pieceCount uint32 = 0
 	pieceRequestPayload := new(bytes.Buffer)
 
 	for _, value := range payload {
-		if !files.HasPiece(file.Name, int(value)) {
+		if !files.HasPiece(file.Name, int(value)) && pieceCount < MaxPieceRequest {
 			pieceCount++
 			pieceRequestPayload.Write(uint32ToByteArr(value))
 		}
 	}
 
 	fmt.Printf("payload size = %d\n", pieceCount)
-	fmt.Println(pieceRequestPayload)
 
 	buffer := new(bytes.Buffer)
 	buffer.WriteByte(byte(RequestPieces))

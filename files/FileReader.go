@@ -6,7 +6,8 @@ import (
 	"os"
 )
 
-const chunkSize = 128
+// TODO read chunksize from 'network' file
+const chunkSize = 1024
 
 // ByteChunks - Reads a file and returns 2d array of bytes
 // size of last array will be <= chunkSize

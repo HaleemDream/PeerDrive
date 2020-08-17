@@ -1,10 +1,16 @@
 package network
 
 // HeaderLength size
-const HeaderLength = 5
+const HeaderLength = 9
 
 // ChunkSize size (bytes)
-const ChunkSize = 128
+const ChunkSize = 1024
+
+// MaxPayloadSizeMB limit payload size request
+const MaxPayloadSizeMB = 1
+
+// MaxPieceRequest limits number of pieces peers to request at a time
+const MaxPieceRequest = MaxPayloadSizeMB * 1024 * 1024 / ChunkSize
 
 // MessageType represents first significant byte
 type MessageType uint8
