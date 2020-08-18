@@ -3,8 +3,12 @@ package file
 // TODO - need better solution to filename - being used a lot
 
 import (
+	"bytes"
+	"encoding/gob"
+	"io/ioutil"
 	"log"
 	"math"
+	"os"
 )
 
 // HavePiece
@@ -14,15 +18,14 @@ const (
 	DoesNotHavePiece = 0
 )
 
-const pieceFile = "placeholder"
+const pieceFile = "peerdrive.data"
 
 var piecesByFilename map[string][]int
 
 // InitializePieceInformation reads in file if present and init internal map
 func InitializePieceInformation() {
 	if Exists(pieceFile) {
-		// read in serialized list
-		// save it to map
+		piecesByFilename = ReadMap()
 	} else {
 		piecesByFilename = make(map[string][]int)
 	}
@@ -100,6 +103,39 @@ func MissingPieces(filename string) bool {
 	}
 
 	return false
+}
+
+// SaveMap serialize map to disk
+func SaveMap() {
+	buffer := new(bytes.Buffer)
+	encoder := gob.NewEncoder(buffer)
+
+	if err := encoder.Encode(piecesByFilename); err != nil {
+		log.Print(err)
+	}
+
+	if err := ioutil.WriteFile(pieceFile, buffer.Bytes(), 0644); err != nil {
+		log.Print(err)
+	}
+}
+
+// ReadMap deserializes map from disk
+func ReadMap() map[string][]int {
+	f, err := os.Open(pieceFile)
+	defer f.Close()
+
+	if err != nil {
+		log.Print(err)
+	}
+
+	var decodedMap map[string][]int
+	decoder := gob.NewDecoder(f)
+
+	if err := decoder.Decode(&decodedMap); err != nil {
+		log.Print(err)
+	}
+
+	return decodedMap
 }
 
 // GetPieceInformation returns pieces owned by client for file
